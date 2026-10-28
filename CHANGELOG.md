@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `--replay -` reads the exchanges file from standard input (same size limit and error messages, naming the source `<stdin>`).
+
 ## [0.4.0] - 2026-10-28
 
 ### Added
