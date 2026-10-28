@@ -99,12 +99,32 @@ def test_unrecorded_request_is_a_connection_error() -> None:
     assert "not in the replay file" in report.checks[0].reason
 
 
-def test_cli_replay_without_a_url(tmp_path, capsys) -> None:
+def test_cli_replay_from_stdin(tmp_path, capsys, monkeypatch) -> None:
     recorder, _ = _record()
     path = tmp_path / "run.json"
     recorder.write(str(path), MCP)
-    assert main(["--replay", str(path), "--json"]) == 1
+    content = path.read_bytes()
+    import io
+
+    import mcp_auth_doctor.exchanges as exchanges
+
+    fake_stdin = type("FakeStdin", (), {"buffer": io.BytesIO(content)})()
+    monkeypatch.setattr(exchanges.sys, "stdin", fake_stdin)
+    assert main(["--replay", "-", "--json"]) == 1
     assert json.loads(capsys.readouterr().out)["url"] == MCP
+
+
+def test_cli_replay_stdin_non_json(capsys, monkeypatch) -> None:
+    import io
+
+    import mcp_auth_doctor.exchanges as exchanges
+
+    fake_stdin = type("FakeStdin", (), {"buffer": io.BytesIO(b"not json at all")})()
+    monkeypatch.setattr(exchanges.sys, "stdin", fake_stdin)
+    assert main(["--replay", "-"]) == 3
+    err = capsys.readouterr().err
+    assert "<stdin>" in err
+    assert "not JSON" in err
 
 
 @pytest.mark.parametrize(
